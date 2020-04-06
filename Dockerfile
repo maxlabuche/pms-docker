@@ -1,8 +1,7 @@
 FROM ubuntu:16.04
 
+ARG TARGETPLATFORM
 ARG S6_OVERLAY_VERSION=v1.22.1.0
-ARG S6_OVERLAY_ARCH=amd64
-ARG PLEX_BUILD=linux-x86_64
 ARG PLEX_DISTRO=debian
 ARG DEBIAN_FRONTEND="noninteractive"
 ENV TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
@@ -10,6 +9,7 @@ ENV TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
 ENTRYPOINT ["/init"]
 
 RUN \
+
 # Update and get dependencies
     apt-get update && \
     apt-get install -y \
@@ -20,6 +20,14 @@ RUN \
       unrar \
       udev \
     && \
+
+# Set S6_OVERLAY_ARCH based on TARGETPLATFORM from docker-buildx
+    case ${TARGETPLATFORM} in \
+        "linux/386") export S6_OVERLAY_ARCH=x86 ;; \
+        "linux/arm64") export S6_OVERLAY_ARCH=aarch64 ;; \
+        "linux/arm/v7") export S6_OVERLAY_ARCH=armhf ;; \
+        *) export S6_OVERLAY_ARCH=amd64 ;; \
+    esac && \
 
 # Fetch and extract S6 overlay
     curl -J -L -o /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.gz https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.gz && \
